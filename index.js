@@ -45,23 +45,150 @@ function wrapAsPromise (target, type, hooks = {}) {
   })
 }
 
+function getObjectStore (mixin, model, mode = 'readonly') {
+  const db = mixin[$$db]
+  const storeName = mixin.storageNameGetter(model, mixin.dbVersion)
+  const tx = db.transaction(storeName, mode)
+  return tx.objectStore(storeName)
+}
+
+function exitTransaction (flow, value) {
+  if (value != null) {
+    return new Promise(function (resolve) {
+      setTimeout(function () {
+        resolve(value)
+      })
+    })
+  } else {
+    return new Promise(function (resolve) {
+      setTimeout(function () {
+        resolve(flow.next())
+      })
+    })
+  }
+}
+
+function doStore (mixin, flow) {
+  const objectStore = getObjectStore(mixin, this.constructor, 'readwrite')
+  const objectData = Storable.encode(this)
+  const request = objectStore.put(objectData)
+  return wrapAsPromise(request, 'request').then(function () {
+    return exitTransaction(flow)
+  })
+}
+
+function doRemove (mixin, flow) {
+  const objectStore = getObjectStore(mixin, this.constructor, 'readwrite')
+  const objectKey = Identifiable.idFor(this)
+  const request = objectStore.delete(objectKey)
+  return wrapAsPromise(request, 'request').then(function () {
+    return exitTransaction(flow)
+  })
+}
+
+function doFindOne (mixin, flow, searchArg) {
+  if (searchArg == null) {
+    return flow.resolve(null)
+  }
+  if (typeof searchArg === 'object') {
+    const [key] = Object.keys(searchArg)
+    if (Identifiable.idKeyFor(this) === key) {
+      searchArg = key
+    } else {
+      if (Searchable.hasField(this, key)) {
+        const objectStore = getObjectStore(mixin, this)
+        const index = objectStore.index(key)
+        const request = index.get(searchArg[key])
+        return wrapAsPromise(request, 'request').then(function () {
+          return exitTransaction(flow, request.result)
+        })
+      } else {
+        const objectStore = getObjectStore(mixin, this)
+        const req = objectStore.openCursor()
+        return new Promise(function (resolve, reject) {
+          req.onsuccess = function (event) {
+            const cursor = event.target.result
+            if (cursor) {
+              let item = cursor.value
+              if (item[key] === searchArg[key]) {
+                setTimeout(() => resolve(item))
+              } else {
+                cursor.continue()
+              }
+            } else {
+              resolve(flow.next())
+            }
+          }
+          req.onerror = reject
+        })
+      }
+    }
+  }
+  if (typeof searchArg === 'string' || typeof searchArg === 'number') {
+    const objectStore = getObjectStore(mixin, this)
+    const request = objectStore.get(searchArg)
+    return wrapAsPromise(request, 'request').then(function () {
+      return request.result
+    }).catch(function () {
+      return flow.next()
+    })
+  }
+}
+
+function doFindMany (mixin, flow, searchArg) {
+  if (searchArg == null) {
+    return flow.resolve(null)
+  }
+  const keys = Object.keys(searchArg)
+  if (keys.length > 1) {
+    return flow.next()
+  }
+  const key = keys.pop()
+  if (Identifiable.idKeyFor(this) === key) {
+    const objectStore = getObjectStore(mixin, this)
+    const request = objectStore.get(searchArg)
+    return wrapAsPromise(request, 'request').then(function (event) {
+      return [request.result]
+    }).catch(function () {
+      return flow.next()
+    })
+  } else if (Searchable.hasField(this, key)) {
+    const objectStore = getObjectStore(mixin, this)
+    const index = objectStore.index(key)
+    const request = index.getAll(searchArg[key])
+    return wrapAsPromise(request, 'request').then(function (event) {
+      return exitTransaction(flow, request.result)
+    })
+  } else {
+    const objectStore = getObjectStore(mixin, this)
+    const req = objectStore.openCursor()
+    let results = []
+    return new Promise(function (resolve, reject) {
+      req.onsuccess = function (event) {
+        const cursor = event.target.result
+        if (cursor) {
+          let item = cursor.value
+          if (item[key] === searchArg[key]) {
+            results.push(item)
+          }
+          cursor.continue()
+        } else {
+          if (results.length === 0) {
+            resolve(flow.next())
+          } else {
+            setTimeout(() => resolve(results))
+          }
+        }
+      }
+      req.onerror = reject
+    })
+  }
+}
+
 const IndexedDBMixin = Mixin('IndexedDBMixin')
-  .requires(Identifiable)
-  .implement(Queryable.store, function (mixin, flow, object) {
-
-  })
-  .implement(Queryable.remove, function (mixin, flow, object) {
-
-  })
-  .implement(Queryable.findOne, function (mixin, flow, object) {
-
-  })
-  .implement(Queryable.findMany, function (mixin, flow, object) {
-
-  })
   .construct(function (options = {}) {
     const {
-      db = 'Nucleotides',
+      db = 'N9S',
       version = 1,
       storeName,
       migrate
@@ -75,6 +202,11 @@ const IndexedDBMixin = Mixin('IndexedDBMixin')
       this.migrate = migrate
     }
   })
+  .require(Identifiable)
+  .implement(Queryable.store, doStore)
+  .implement(Queryable.remove, doRemove)
+  .implement(Queryable.findOne, doFindOne)
+  .implement(Queryable.findMany, doFindMany)
 
 IndexedDBMixin.prototype.storageNameGetter = function (model, version) {
   let name
@@ -95,7 +227,7 @@ IndexedDBMixin.prototype.prepare = function () {
       upgradeneeded: (event) => {
         let promises = []
         for (let model of this.models) {
-          promises.push(this.prepareForModel(event, model))
+          promises.push(this.prepareStoreForModel(event, model))
         }
       }
     }).then((event) => {
@@ -142,5 +274,11 @@ IndexedDBMixin.prototype.prepareStoreForModel = function (event, model) {
 
   return wrapAsPromise(newObjectStore.transaction, 'transaction')
 }
+
+Object.defineProperty(IndexedDBMixin.prototype, 'db', {
+  get: function () {
+    return this[$$db]
+  }
+})
 
 module.exports = IndexedDBMixin
