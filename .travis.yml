@@ -5,6 +5,6 @@ before_install:
   - sh -e /etc/init.d/xvfb start
 node_js:
     - "6"
-script: karma start --browsers Chrome --single-run
+script: npm run karma
 before_script:
     - npm install
