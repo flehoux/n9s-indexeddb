@@ -9,6 +9,9 @@ var watch = require('gulp-watch')
 
 gulp.task('jasmine', function () {
   var filesForTest = ['dist/js/*.js']
+  setTimeout(function () {
+    console.log('Point your browser to http://localhost:8080 to see test results (cmd-double-click on mac)')
+  }, 50)
   return gulp.src(filesForTest)
     .pipe(watch(filesForTest))
     .pipe(jasmineBrowser.specRunner({console: true}))
