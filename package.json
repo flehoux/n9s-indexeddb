@@ -4,7 +4,7 @@
   "description": "IndexedDB storage mixin for nucleotides.js",
   "main": "index.js",
   "scripts": {
-    "test": "jasmine"
+    "test": "gulp jasmine"
   },
   "repository": {
     "type": "git",
@@ -13,6 +13,18 @@
   "author": "mathieu@damours.org",
   "license": "MIT",
   "devDependencies": {
-    "jasmine": "^2.6.0"
+    "babel-polyfill": "^6.23.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babelify": "^7.3.0",
+    "browserify": "^14.4.0",
+    "globby": "^6.1.0",
+    "gulp": "^3.9.1",
+    "gulp-browserify": "^0.5.1",
+    "gulp-jasmine-browser": "^1.9.0",
+    "gulp-watch": "^4.3.11",
+    "jasmine": "^2.6.0",
+    "through2": "^2.0.3",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0"
   }
 }
