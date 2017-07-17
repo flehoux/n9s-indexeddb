@@ -52,28 +52,12 @@ function getObjectStore (mixin, model, mode = 'readonly') {
   return tx.objectStore(storeName)
 }
 
-function exitTransaction (flow, value) {
-  if (value != null) {
-    return new Promise(function (resolve) {
-      setTimeout(function () {
-        resolve(value)
-      })
-    })
-  } else {
-    return new Promise(function (resolve) {
-      setTimeout(function () {
-        resolve(flow.next())
-      })
-    })
-  }
-}
-
 function doStore (mixin, flow) {
   const objectStore = getObjectStore(mixin, this.constructor, 'readwrite')
   const objectData = Storable.encode(this)
   const request = objectStore.put(objectData)
   return wrapAsPromise(request, 'request').then(function () {
-    return exitTransaction(flow)
+    return flow.continueAsync()
   })
 }
 
@@ -82,7 +66,7 @@ function doRemove (mixin, flow) {
   const objectKey = Identifiable.idFor(this)
   const request = objectStore.delete(objectKey)
   return wrapAsPromise(request, 'request').then(function () {
-    return exitTransaction(flow)
+    return flow.continueAsync()
   })
 }
 
@@ -100,7 +84,7 @@ function doFindOne (mixin, flow, searchArg) {
         const index = objectStore.index(key)
         const request = index.get(searchArg[key])
         return wrapAsPromise(request, 'request').then(function () {
-          return exitTransaction(flow, request.result)
+          return flow.resolveAsync(request.result)
         })
       } else {
         const objectStore = getObjectStore(mixin, this)
@@ -111,12 +95,12 @@ function doFindOne (mixin, flow, searchArg) {
             if (cursor) {
               let item = cursor.value
               if (item[key] === searchArg[key]) {
-                setTimeout(() => resolve(item))
+                resolve(flow.resolveAsync(item))
               } else {
                 cursor.continue()
               }
             } else {
-              resolve(flow.next())
+              resolve(flow.continueAsync())
             }
           }
           req.onerror = reject
@@ -128,9 +112,9 @@ function doFindOne (mixin, flow, searchArg) {
     const objectStore = getObjectStore(mixin, this)
     const request = objectStore.get(searchArg)
     return wrapAsPromise(request, 'request').then(function () {
-      return request.result
+      return flow.resolveAsync(request.result)
     }).catch(function () {
-      return flow.next()
+      return flow.continueAsync()
     })
   }
 }
@@ -141,23 +125,23 @@ function doFindMany (mixin, flow, searchArg) {
   }
   const keys = Object.keys(searchArg)
   if (keys.length > 1) {
-    return flow.next()
+    return flow.continue()
   }
   const key = keys.pop()
   if (Identifiable.idKeyFor(this) === key) {
     const objectStore = getObjectStore(mixin, this)
     const request = objectStore.get(searchArg)
     return wrapAsPromise(request, 'request').then(function (event) {
-      return [request.result]
+      return flow.resolveAsync([request.result])
     }).catch(function () {
-      return flow.next()
+      return flow.continueAsync()
     })
   } else if (Searchable.hasField(this, key)) {
     const objectStore = getObjectStore(mixin, this)
     const index = objectStore.index(key)
     const request = index.getAll(searchArg[key])
     return wrapAsPromise(request, 'request').then(function (event) {
-      return exitTransaction(flow, request.result)
+      return flow.resolveAsync(request.result)
     })
   } else {
     const objectStore = getObjectStore(mixin, this)
@@ -174,9 +158,9 @@ function doFindMany (mixin, flow, searchArg) {
           cursor.continue()
         } else {
           if (results.length === 0) {
-            resolve(flow.next())
+            resolve(flow.continueAsync())
           } else {
-            setTimeout(() => resolve(results))
+            resolve(flow.resolveAsync(results))
           }
         }
       }
