@@ -14,6 +14,7 @@
   "author": "mathieu@damours.org",
   "license": "MIT",
   "devDependencies": {
+    "nucleotides": "matehat/nucleotides.js#master",
     "babel-polyfill": "^6.23.0",
     "babel-preset-es2015": "^6.24.1",
     "babelify": "^7.3.0",
