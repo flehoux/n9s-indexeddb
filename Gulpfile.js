@@ -12,10 +12,17 @@ gulp.task('jasmine', function () {
   setTimeout(function () {
     console.log('Point your browser to http://localhost:8080 to see test results (cmd-double-click on mac)')
   }, 50)
-  return gulp.src(filesForTest)
-    .pipe(watch(filesForTest))
+
+  if (process.argv.includes('--dev')) {
+    return gulp.src(filesForTest)
+      .pipe(watch(filesForTest))
+      .pipe(jasmineBrowser.specRunner({console: true}))
+      .pipe(jasmineBrowser.server({port: 8080}))
+  } else {
+    return gulp.src(filesForTest)
     .pipe(jasmineBrowser.specRunner({console: true}))
     .pipe(jasmineBrowser.server({port: 8080}))
+  }
 })
 
 gulp.task('javascript', function () {

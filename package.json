@@ -4,7 +4,8 @@
   "description": "IndexedDB storage mixin for nucleotides.js",
   "main": "index.js",
   "scripts": {
-    "test": "gulp jasmine"
+    "test": "gulp jasmine",
+    "dev": "gulp watch jasmine --dev"
   },
   "repository": {
     "type": "git",
