@@ -4,8 +4,8 @@
   "description": "IndexedDB storage mixin for nucleotides.js",
   "main": "index.js",
   "scripts": {
-    "test": "gulp jasmine",
-    "dev": "gulp watch jasmine --dev"
+    "test": "gulp test",
+    "dev": "gulp watch test --dev"
   },
   "repository": {
     "type": "git",
@@ -21,9 +21,10 @@
     "globby": "^6.1.0",
     "gulp": "^3.9.1",
     "gulp-browserify": "^0.5.1",
-    "gulp-jasmine-browser": "^1.9.0",
-    "gulp-watch": "^4.3.11",
     "jasmine": "^2.6.0",
+    "karma": "^1.7.0",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-jasmine": "^1.1.0",
     "through2": "^2.0.3",
     "vinyl-buffer": "^1.0.0",
     "vinyl-source-stream": "^1.1.0"

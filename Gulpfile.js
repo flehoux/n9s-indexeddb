@@ -4,25 +4,13 @@ var source = require('vinyl-source-stream')
 var buffer = require('vinyl-buffer')
 var globby = require('globby')
 var through = require('through2')
-var jasmineBrowser = require('gulp-jasmine-browser')
-var watch = require('gulp-watch')
+var TestServer = require('karma').Server
 
-gulp.task('jasmine', function () {
-  var filesForTest = ['dist/js/*.js']
-  setTimeout(function () {
-    console.log('Point your browser to http://localhost:8080 to see test results (cmd-double-click on mac)')
-  }, 50)
-
-  if (process.argv.includes('--dev')) {
-    return gulp.src(filesForTest)
-      .pipe(watch(filesForTest))
-      .pipe(jasmineBrowser.specRunner({console: true}))
-      .pipe(jasmineBrowser.server({port: 8080}))
-  } else {
-    return gulp.src(filesForTest)
-    .pipe(jasmineBrowser.specRunner({console: true}))
-    .pipe(jasmineBrowser.server({port: 8080}))
-  }
+gulp.task('test', ['javascript'], function (done) {
+  new TestServer({
+    configFile: __dirname + '/karma.conf.js',
+    singleRun: !(process.argv.includes('watch'))
+  }, done).start()
 })
 
 gulp.task('javascript', function () {
