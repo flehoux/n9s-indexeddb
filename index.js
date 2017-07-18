@@ -77,14 +77,15 @@ function doFindOne (mixin, flow, searchArg) {
   if (typeof searchArg === 'object') {
     const [key] = Object.keys(searchArg)
     if (Identifiable.idKey(this) === key) {
-      searchArg = key
+      searchArg = searchArg[key]
     } else {
       if (Searchable.hasField(this, key)) {
         const objectStore = getObjectStore(mixin, this)
         const index = objectStore.index(key)
         const request = index.get(searchArg[key])
         return wrapAsPromise(request, 'request').then(function () {
-          return flow.resolveAsync(request.result)
+          let reply = new Protocol.Queryable.Success(request.result)
+          return flow.resolveAsync(reply)
         })
       } else {
         const objectStore = getObjectStore(mixin, this)
@@ -95,7 +96,8 @@ function doFindOne (mixin, flow, searchArg) {
             if (cursor) {
               let item = cursor.value
               if (item[key] === searchArg[key]) {
-                resolve(flow.resolveAsync(item))
+                let reply = new Protocol.Queryable.Success(item)
+                resolve(flow.resolveAsync(reply))
               } else {
                 cursor.continue()
               }
@@ -112,7 +114,8 @@ function doFindOne (mixin, flow, searchArg) {
     const objectStore = getObjectStore(mixin, this)
     const request = objectStore.get(searchArg)
     return wrapAsPromise(request, 'request').then(function () {
-      return flow.resolveAsync(request.result)
+      let reply = new Protocol.Queryable.Success(request.result)
+      return flow.resolveAsync(reply)
     }).catch(function () {
       return flow.continueAsync()
     })
@@ -132,7 +135,8 @@ function doFindMany (mixin, flow, searchArg) {
     const objectStore = getObjectStore(mixin, this)
     const request = objectStore.get(searchArg)
     return wrapAsPromise(request, 'request').then(function (event) {
-      return flow.resolveAsync([request.result])
+      let reply = new Protocol.Queryable.Success([request.result])
+      return flow.resolveAsync(reply)
     }).catch(function () {
       return flow.continueAsync()
     })
@@ -141,7 +145,8 @@ function doFindMany (mixin, flow, searchArg) {
     const index = objectStore.index(key)
     const request = index.getAll(searchArg[key])
     return wrapAsPromise(request, 'request').then(function (event) {
-      return flow.resolveAsync(request.result)
+      let reply = new Protocol.Queryable.Success(request.result)
+      return flow.resolveAsync(reply)
     })
   } else {
     const objectStore = getObjectStore(mixin, this)
@@ -160,7 +165,8 @@ function doFindMany (mixin, flow, searchArg) {
           if (results.length === 0) {
             resolve(flow.continueAsync())
           } else {
-            resolve(flow.resolveAsync(results))
+            let reply = new Protocol.Queryable.Success(results)
+            resolve(flow.resolveAsync(reply))
           }
         }
       }
