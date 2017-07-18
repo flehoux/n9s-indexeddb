@@ -76,7 +76,7 @@ function doFindOne (mixin, flow, searchArg) {
   }
   if (typeof searchArg === 'object') {
     const [key] = Object.keys(searchArg)
-    if (Identifiable.idKeyFor(this) === key) {
+    if (Identifiable.idKey(this) === key) {
       searchArg = key
     } else {
       if (Searchable.hasField(this, key)) {
@@ -128,7 +128,7 @@ function doFindMany (mixin, flow, searchArg) {
     return flow.continue()
   }
   const key = keys.pop()
-  if (Identifiable.idKeyFor(this) === key) {
+  if (Identifiable.idKey(this) === key) {
     const objectStore = getObjectStore(mixin, this)
     const request = objectStore.get(searchArg)
     return wrapAsPromise(request, 'request').then(function (event) {
@@ -194,8 +194,8 @@ const IndexedDBMixin = Mixin('IndexedDBMixin')
 
 IndexedDBMixin.prototype.storageNameGetter = function (model, version) {
   let name
-  if (Storable.hasValueFor(model, 'storageName')) {
-    name = Storable.valueFor(model, 'storageName')
+  if (model.hasValue(Storable.storageName)) {
+    name = Storable.storageName(model)
   } else {
     name = model.name
   }
@@ -222,7 +222,7 @@ IndexedDBMixin.prototype.prepare = function () {
 }
 
 IndexedDBMixin.prototype.prepareStoreForModel = function (event, model) {
-  let idKey = Identifiable.idKeyFor(model)
+  let idKey = Identifiable.idKey(model)
   let storeName = this.storageNameGetter(model, event.newVersion)
   let searchableFields = Searchable.valueFor(model, 'field')
   let db = event.target.result
@@ -239,7 +239,7 @@ IndexedDBMixin.prototype.prepareStoreForModel = function (event, model) {
     })
   }
 
-  if (event.oldVersion && Storable.hasImplementationsFor(model, 'migrateObject')) {
+  if (event.oldVersion && model.implements(Storable.migrateObject)) {
     let oldStoreName = this.storageNameGetter(model, event.oldVersion)
     let transaction = db.transaction(oldStoreName, 'readonly')
     let objectStore = transaction.objectStore(oldStoreName)
