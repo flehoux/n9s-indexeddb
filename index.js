@@ -53,20 +53,67 @@ function getObjectStore (mixin, model, mode = 'readonly') {
 }
 
 function doStore (mixin, flow) {
-  const objectStore = getObjectStore(mixin, this.constructor, 'readwrite')
-  const objectData = Storable.encode(this)
-  const request = objectStore.put(objectData)
-  return wrapAsPromise(request, 'request').then(function () {
-    return flow.continueAsync()
+  return mixin.prepare().then(() => {
+    const objectStore = getObjectStore(mixin, this.constructor, 'readwrite')
+    const objectData = Storable.encode(this)
+    const request = objectStore.put(objectData)
+    return wrapAsPromise(request, 'request').then(function () {
+      return flow.continueAsync()
+    })
   })
 }
 
 function doRemove (mixin, flow) {
-  const objectStore = getObjectStore(mixin, this.constructor, 'readwrite')
-  const objectKey = Identifiable.idFor(this)
-  const request = objectStore.delete(objectKey)
+  return mixin.prepare().then(() => {
+    const objectStore = getObjectStore(mixin, this.constructor, 'readwrite')
+    const objectKey = Identifiable.idFor(this)
+    const request = objectStore.delete(objectKey)
+    return wrapAsPromise(request, 'request').then(function () {
+      return flow.continueAsync()
+    })
+  })
+}
+
+function doFindOneUsingId (mixin, flow, id) {
+  const objectStore = getObjectStore(mixin, this)
+  const request = objectStore.get(id)
   return wrapAsPromise(request, 'request').then(function () {
+    let reply = new Protocol.Queryable.Success(request.result)
+    return flow.resolveAsync(reply)
+  }).catch(function () {
     return flow.continueAsync()
+  })
+}
+
+function doFindOneUsingIndex (mixin, flow, key, value) {
+  const objectStore = getObjectStore(mixin, this)
+  const index = objectStore.index(key)
+  const request = index.get(value)
+  return wrapAsPromise(request, 'request').then(function () {
+    let reply = new Protocol.Queryable.Success(request.result)
+    return flow.resolveAsync(reply)
+  })
+}
+
+function doFindOneByWalking (mixin, flow, key, value) {
+  const objectStore = getObjectStore(mixin, this)
+  const req = objectStore.openCursor()
+  return new Promise(function (resolve, reject) {
+    req.onsuccess = function (event) {
+      const cursor = event.target.result
+      if (cursor) {
+        let item = cursor.value
+        if (item[key] === value) {
+          let reply = new Protocol.Queryable.Success(item)
+          resolve(flow.resolveAsync(reply))
+        } else {
+          cursor.continue()
+        }
+      } else {
+        resolve(flow.continueAsync())
+      }
+    }
+    req.onerror = reject
   })
 }
 
@@ -74,105 +121,114 @@ function doFindOne (mixin, flow, searchArg) {
   if (searchArg == null) {
     return flow.resolve(null)
   }
-  if (typeof searchArg === 'object') {
-    const [key] = Object.keys(searchArg)
-    if (Identifiable.idKey(this) === key) {
-      searchArg = searchArg[key]
-    } else {
-      if (Searchable.hasField(this, key)) {
-        const objectStore = getObjectStore(mixin, this)
-        const index = objectStore.index(key)
-        const request = index.get(searchArg[key])
-        return wrapAsPromise(request, 'request').then(function () {
-          let reply = new Protocol.Queryable.Success(request.result)
-          return flow.resolveAsync(reply)
-        })
+  return mixin.prepare().then(() => {
+    if (typeof searchArg === 'object') {
+      const [key] = Object.keys(searchArg)
+      if (Identifiable.idKey(this) === key) {
+        searchArg = searchArg[key]
       } else {
-        const objectStore = getObjectStore(mixin, this)
-        const req = objectStore.openCursor()
-        return new Promise(function (resolve, reject) {
-          req.onsuccess = function (event) {
-            const cursor = event.target.result
-            if (cursor) {
-              let item = cursor.value
-              if (item[key] === searchArg[key]) {
-                let reply = new Protocol.Queryable.Success(item)
-                resolve(flow.resolveAsync(reply))
-              } else {
-                cursor.continue()
-              }
-            } else {
-              resolve(flow.continueAsync())
-            }
-          }
-          req.onerror = reject
-        })
+        if (Searchable.hasField(this, key)) {
+          return doFindOneUsingIndex.call(this, mixin, flow, key, searchArg[key])
+        } else {
+          return doFindOneByWalking.call(this, mixin, flow, key, searchArg[key])
+        }
       }
     }
-  }
-  if (typeof searchArg === 'string' || typeof searchArg === 'number') {
-    const objectStore = getObjectStore(mixin, this)
-    const request = objectStore.get(searchArg)
-    return wrapAsPromise(request, 'request').then(function () {
-      let reply = new Protocol.Queryable.Success(request.result)
-      return flow.resolveAsync(reply)
-    }).catch(function () {
-      return flow.continueAsync()
-    })
-  }
+    if (typeof searchArg === 'string' || typeof searchArg === 'number') {
+      return doFindOneUsingId.call(this, mixin, flow, searchArg)
+    }
+  })
+}
+
+function doFindAll (mixin, flow) {
+  const objectStore = getObjectStore(mixin, this)
+  const req = objectStore.openCursor()
+  let results = []
+  return new Promise(function (resolve, reject) {
+    req.onsuccess = function (event) {
+      const cursor = event.target.result
+      if (cursor) {
+        let item = cursor.value
+        results.push(item)
+        cursor.continue()
+      } else {
+        if (results.length === 0) {
+          resolve(flow.continueAsync())
+        } else {
+          let reply = new Protocol.Queryable.Success(results)
+          resolve(flow.resolveAsync(reply))
+        }
+      }
+    }
+    req.onerror = reject
+  })
+}
+
+function doFindAllUsingId (mixin, flow, id) {
+  const objectStore = getObjectStore(mixin, this)
+  const request = objectStore.get(id)
+  return wrapAsPromise(request, 'request').then(function (event) {
+    let reply = new Protocol.Queryable.Success([request.result])
+    return flow.resolveAsync(reply)
+  }).catch(function () {
+    return flow.continueAsync()
+  })
+}
+
+function doFindAllUsingIndex (mixin, flow, key, value) {
+  const objectStore = getObjectStore(mixin, this)
+  const index = objectStore.index(key)
+  const request = index.getAll(value)
+  return wrapAsPromise(request, 'request').then(function (event) {
+    let reply = new Protocol.Queryable.Success(request.result)
+    return flow.resolveAsync(reply)
+  })
+}
+
+function doFindAllByWalking (mixin, flow, key, value) {
+  const objectStore = getObjectStore(mixin, this)
+  const req = objectStore.openCursor()
+  let results = []
+  return new Promise(function (resolve, reject) {
+    req.onsuccess = function (event) {
+      const cursor = event.target.result
+      if (cursor) {
+        let item = cursor.value
+        if (item[key] === value) {
+          results.push(item)
+        }
+        cursor.continue()
+      } else {
+        if (results.length === 0) {
+          resolve(flow.continueAsync())
+        } else {
+          let reply = new Protocol.Queryable.Success(results)
+          resolve(flow.resolveAsync(reply))
+        }
+      }
+    }
+    req.onerror = reject
+  })
 }
 
 function doFindMany (mixin, flow, searchArg) {
-  if (searchArg == null) {
-    return flow.resolve(null)
-  }
-  const keys = Object.keys(searchArg)
-  if (keys.length > 1) {
-    return flow.continue()
-  }
-  const key = keys.pop()
-  if (Identifiable.idKey(this) === key) {
-    const objectStore = getObjectStore(mixin, this)
-    const request = objectStore.get(searchArg)
-    return wrapAsPromise(request, 'request').then(function (event) {
-      let reply = new Protocol.Queryable.Success([request.result])
-      return flow.resolveAsync(reply)
-    }).catch(function () {
-      return flow.continueAsync()
-    })
-  } else if (Searchable.hasField(this, key)) {
-    const objectStore = getObjectStore(mixin, this)
-    const index = objectStore.index(key)
-    const request = index.getAll(searchArg[key])
-    return wrapAsPromise(request, 'request').then(function (event) {
-      let reply = new Protocol.Queryable.Success(request.result)
-      return flow.resolveAsync(reply)
-    })
-  } else {
-    const objectStore = getObjectStore(mixin, this)
-    const req = objectStore.openCursor()
-    let results = []
-    return new Promise(function (resolve, reject) {
-      req.onsuccess = function (event) {
-        const cursor = event.target.result
-        if (cursor) {
-          let item = cursor.value
-          if (item[key] === searchArg[key]) {
-            results.push(item)
-          }
-          cursor.continue()
-        } else {
-          if (results.length === 0) {
-            resolve(flow.continueAsync())
-          } else {
-            let reply = new Protocol.Queryable.Success(results)
-            resolve(flow.resolveAsync(reply))
-          }
-        }
-      }
-      req.onerror = reject
-    })
-  }
+  return mixin.prepare().then(() => {
+    if (searchArg == null) {
+      return doFindAll.call(this, mixin, flow)
+    }
+    const keys = Object.keys(searchArg)
+    if (keys.length > 1) {
+      return flow.continue()
+    }
+    const key = keys.pop()
+    if (Identifiable.idKey(this) === key) {
+      return doFindAllUsingId.call(this, mixin, flow, searchArg[key])
+    } else if (Searchable.hasField(this, key)) {
+      return doFindAllUsingIndex.call(this, mixin, flow, key, searchArg[key])
+    } else {
+      return doFindAllByWalking.call(this, mixin, flow, key, searchArg[key])
+    }
+  })
 }
 
 const IndexedDBMixin = Mixin('IndexedDBMixin')
@@ -193,10 +249,10 @@ const IndexedDBMixin = Mixin('IndexedDBMixin')
     }
   })
   .require(Identifiable)
-  .implement(Queryable.store, doStore)
-  .implement(Queryable.remove, doRemove)
-  .implement(Queryable.findOne, doFindOne)
-  .implement(Queryable.findMany, doFindMany)
+  .implement(Queryable.store, 1000, doStore)
+  .implement(Queryable.remove, 1000, doRemove)
+  .implement(Queryable.findOne, 1000, doFindOne)
+  .implement(Queryable.findMany, 1000, doFindMany)
 
 IndexedDBMixin.prototype.storageNameGetter = function (model, version) {
   let name
