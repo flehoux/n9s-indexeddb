@@ -230,7 +230,7 @@ IndexedDBMixin.prototype.prepare = function () {
 IndexedDBMixin.prototype.prepareStoreForModel = function (event, model) {
   let idKey = Identifiable.idKey(model)
   let storeName = this.storageNameGetter(model, event.newVersion)
-  let searchableFields = Searchable.valueFor(model, 'field')
+  let searchableFields = Searchable.valueFor(model, 'field') || []
   let db = event.target.result
   let newObjectStore = db.createObjectStore(storeName, { keyPath: idKey })
 
