@@ -70,11 +70,22 @@ const IndexedDBMixin = Mixin('IndexedDBMixin')
   })
   .require(Identifiable)
   .implement(Queryable.store, 1000, function doStore (mixin, flow) {
+    const {Model} = require('nucleotides')
     return flow.continue().then((response) => {
       if (!(response instanceof Protocol.Queryable.Success)) {
-        response = new Protocol.Queryable.Success(this, 200, Storable.encode(this))
+        response = new Protocol.Queryable.Success(this, 200)
       }
-      return mixin.addObject(this.constructor, response.data).then(function () {
+      let objectData
+      if (typeof response.data !== 'object' || response.data == null || response.data[Identifiable.idKey(this.constructor)] == null) {
+        if (Model.isInstance(response.result)) {
+          objectData = Storable.encode(response.result)
+        } else {
+          objectData = Storable.encode(this)
+        }
+      } else {
+        objectData = response.data
+      }
+      return mixin.addObject(this.constructor, objectData).then(function () {
         return flow.resolveAsync(response)
       })
     })
