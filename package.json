@@ -2,7 +2,7 @@
   "name": "n9s-indexeddb",
   "version": "1.0.0",
   "description": "IndexedDB storage mixin for nucleotides.js",
-  "main": "index.js",
+  "main": "indexeddb.js",
   "scripts": {
     "test": "gulp test",
     "dev": "gulp watch test --dev",
