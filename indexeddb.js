@@ -2,7 +2,7 @@
 
 const $$db = Symbol('db')
 
-const {Mixin, Protocol} = require('nucleotides')
+const {Mixin, Protocol, Model} = require('nucleotides')
 const {Identifiable, Searchable, Queryable, Storable} = Protocol
 
 function wrapAsPromise (target, type, hooks = {}) {
@@ -70,7 +70,6 @@ const IndexedDBMixin = Mixin('IndexedDBMixin')
   })
   .require(Identifiable)
   .implement(Queryable.store, 1000, function doStore (mixin, flow) {
-    const {Model} = require('nucleotides')
     return flow.continue().then((response) => {
       if (!(response instanceof Protocol.Queryable.Success)) {
         response = new Protocol.Queryable.Success(this, 200)
@@ -333,7 +332,6 @@ Object.assign(IndexedDBMixin.prototype, {
   },
 
   removeObject: function (object, id) {
-    const {Model} = require('nucleotides')
     return this.prepare().then(() => {
       let objectStore
       let objectKey
@@ -356,7 +354,6 @@ Object.assign(IndexedDBMixin.prototype, {
     })
   },
   addObject: function (object, data) {
-    const {Model} = require('nucleotides')
     return this.prepare().then(() => {
       let objectStore
       let objectData
@@ -371,7 +368,6 @@ Object.assign(IndexedDBMixin.prototype, {
     })
   },
   addObjects: function (model, items) {
-    const {Model} = require('nucleotides')
     return this.prepare().then(() => {
       let objectStore
       objectStore = this.getStore(model, 'readwrite')
