@@ -75,7 +75,9 @@ const IndexedDBMixin = Mixin('IndexedDBMixin')
         response = new Protocol.Queryable.Success(this, 200)
       }
       let objectData
-      if (typeof response.data !== 'object' || response.data == null || response.data[Identifiable.idKey(this.constructor)] == null) {
+      if (typeof response.data !== 'object' ||
+          response.data == null ||
+          response.data[Identifiable.idKey(this.constructor)] == null) {
         if (Model.isInstance(response.result)) {
           objectData = Storable.encode(response.result)
         } else {
@@ -135,7 +137,7 @@ Object.defineProperty(IndexedDBMixin.prototype, 'db', {
 })
 
 Object.assign(IndexedDBMixin.prototype, {
-  storageNameGetter: function (model, version) {
+  storageNameGetter (model, version) {
     let name
     if (model.hasValue(Storable.storageName)) {
       name = Storable.storageName(model)
@@ -144,7 +146,7 @@ Object.assign(IndexedDBMixin.prototype, {
     }
     return [name, version].join('.')
   },
-  prepare: function () {
+  prepare () {
     if (this[$$db] != null) {
       return Promise.resolve(this[$$db])
     } else {
@@ -162,7 +164,7 @@ Object.assign(IndexedDBMixin.prototype, {
       })
     }
   },
-  prepareStoreForModel: function (event, model) {
+  prepareStoreForModel (event, model) {
     let idKey = Identifiable.idKey(model)
     let storeName = this.storageNameGetter(model, event.newVersion)
     let searchableFields = Searchable.valueFor(model, 'field') || []
@@ -199,14 +201,14 @@ Object.assign(IndexedDBMixin.prototype, {
 
     return wrapAsPromise(newObjectStore.transaction, 'transaction')
   },
-  getStore: function (model, mode = 'readonly') {
+  getStore (model, mode = 'readonly') {
     const db = this[$$db]
     const storeName = this.storageNameGetter(model, this.dbVersion)
     const tx = db.transaction(storeName, mode)
     return tx.objectStore(storeName)
   },
 
-  findObjects: function (model, searchArg) {
+  findObjects (model, searchArg) {
     return this.prepare().then(() => {
       if (searchArg == null) {
         return this.getAllObjects(model)
@@ -222,7 +224,7 @@ Object.assign(IndexedDBMixin.prototype, {
       }
     })
   },
-  findObjectsByWalking: function (model, key, value) {
+  findObjectsByWalking (model, key, value) {
     const objectStore = this.getStore(model)
     const req = objectStore.openCursor()
     let results = []
@@ -242,7 +244,7 @@ Object.assign(IndexedDBMixin.prototype, {
       req.onerror = reject
     })
   },
-  findObjectsUsingIndex: function (model, key, value) {
+  findObjectsUsingIndex (model, key, value) {
     const objectStore = this.getStore(model)
     const index = objectStore.index(key)
     const request = index.getAll(value)
@@ -250,14 +252,14 @@ Object.assign(IndexedDBMixin.prototype, {
       return resolveAsync(request.result)
     })
   },
-  findObjectsUsingId: function (model, id) {
+  findObjectsUsingId (model, id) {
     const objectStore = this.getStore(model)
     const request = objectStore.get(id)
     return wrapAsPromise(request, 'request').then(function (event) {
       return resolveAsync([request.result])
     })
   },
-  getAllObjects: function (model) {
+  getAllObjects (model) {
     const objectStore = this.getStore(model)
     const req = objectStore.openCursor()
     let results = []
@@ -275,8 +277,7 @@ Object.assign(IndexedDBMixin.prototype, {
       req.onerror = reject
     })
   },
-
-  getObject: function (model, searchArg) {
+  getObject (model, searchArg) {
     return this.prepare().then(() => {
       if (typeof searchArg === 'object') {
         const [key] = Object.keys(searchArg)
@@ -295,14 +296,14 @@ Object.assign(IndexedDBMixin.prototype, {
       }
     })
   },
-  getObjectUsingId: function (model, id) {
+  getObjectUsingId (model, id) {
     const objectStore = this.getStore(model)
     const request = objectStore.get(id)
     return wrapAsPromise(request, 'request').then(function () {
       return resolveAsync(request.result)
     })
   },
-  getObjectUsingIndex: function (model, key, value) {
+  getObjectUsingIndex (model, key, value) {
     const objectStore = this.getStore(model)
     const index = objectStore.index(key)
     const request = index.get(value)
@@ -310,7 +311,7 @@ Object.assign(IndexedDBMixin.prototype, {
       return resolveAsync(request.result)
     })
   },
-  getObjectByWalking: function (model, key, value) {
+  getObjectByWalking (model, key, value) {
     const objectStore = this.getStore(model)
     const req = objectStore.openCursor()
     return new Promise(function (resolve, reject) {
@@ -331,7 +332,7 @@ Object.assign(IndexedDBMixin.prototype, {
     })
   },
 
-  removeObject: function (object, id) {
+  removeObject (object, id) {
     return this.prepare().then(() => {
       let objectStore
       let objectKey
@@ -342,18 +343,21 @@ Object.assign(IndexedDBMixin.prototype, {
         objectStore = this.getStore(object, 'readwrite')
         objectKey = id
       } else {
-        throw new Error(`IndexedDBMixin.removeObject was called in a unsupported manner. object: ${object}, id: ${id}`)
+        throw new Error(
+          'IndexedDBMixin.removeObject was called in a unsupported manner. ' +
+          `object: ${object}, id: ${id}`
+        )
       }
       return wrapAsPromise(objectStore.delete(objectKey), 'request')
     })
   },
-  clearObjects: function (model) {
+  clearObjects (model) {
     return this.prepare().then(() => {
       let objectStore = this.getStore(model, 'readwrite')
       return wrapAsPromise(objectStore.clear(), 'request')
     })
   },
-  addObject: function (object, data) {
+  addObject (object, data) {
     return this.prepare().then(() => {
       let objectStore
       let objectData
@@ -367,7 +371,7 @@ Object.assign(IndexedDBMixin.prototype, {
       return wrapAsPromise(objectStore.put(objectData), 'request')
     })
   },
-  addObjects: function (model, items) {
+  addObjects (model, items) {
     return this.prepare().then(() => {
       let objectStore
       objectStore = this.getStore(model, 'readwrite')
