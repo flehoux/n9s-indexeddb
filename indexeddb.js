@@ -146,6 +146,20 @@ Object.assign(IndexedDBMixin.prototype, {
     }
     return [name, version].join('.')
   },
+  close () {
+    if (this[$$db] != null) {
+      this[$$db].close()
+      delete this[$$db]
+    }
+  },
+  delete () {
+    this.close()
+    let req = window.indexedDB.deleteDatabase(this.dbName, this.dbVersion)
+    return wrapAsPromise(req, 'request').then((event) => {
+      delete this[$$db]
+      return event
+    })
+  },
   prepare () {
     if (this[$$db] != null) {
       return Promise.resolve(this[$$db])
