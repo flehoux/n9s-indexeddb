@@ -154,7 +154,7 @@ Object.assign(IndexedDBMixin.prototype, {
   },
   delete () {
     this.close()
-    let req = window.indexedDB.deleteDatabase(this.dbName, this.dbVersion)
+    let req = window.indexedDB.deleteDatabase(this.dbName)
     return wrapAsPromise(req, 'request').then((event) => {
       delete this[$$db]
       return event
