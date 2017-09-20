@@ -67,6 +67,9 @@ const IndexedDBMixin = Mixin('IndexedDBMixin')
     if (migrate != null) {
       this.migrate = migrate
     }
+    this.transactions = []
+    this.transactionIndex = 0
+    this.closeWaiters = []
   })
   .require(Identifiable)
   .implement(Queryable.store, 1000, function doStore (mixin, flow) {
@@ -146,18 +149,49 @@ Object.assign(IndexedDBMixin.prototype, {
     }
     return [name, version].join('.')
   },
-  close () {
-    if (this[$$db] != null) {
-      this[$$db].close()
-      delete this[$$db]
+  getTransaction (db, name, mode) {
+    let tx = db.transaction(name, mode)
+    let i = this.transactionIndex++
+    this.transactions.push(i)
+    tx.oncomplete = () => {
+      let idx = this.transactions.indexOf(i)
+      if (idx >= 0) {
+        this.transactions.splice(idx, 1)
+        if (this.transactions.length === 0 && this.closeWaiters.length > 0) {
+          for (let waiter of this.closeWaiters) {
+            waiter()
+          }
+          this.closeWaiters = []
+        }
+      }
+    }
+    return tx
+  },
+  waitForTransactionsEnd () {
+    if (this.transactions.length === 0) {
+      return Promise.resolve(null)
+    } else {
+      return new Promise((resolve) => {
+        this.closeWaiters.push(resolve)
+      })
     }
   },
+  close () {
+    return this.waitForTransactionsEnd().then(() => {
+      if (this[$$db] != null) {
+        this[$$db].close()
+        delete this[$$db]
+      }
+    })
+  },
   delete () {
-    this.close()
-    let req = window.indexedDB.deleteDatabase(this.dbName)
-    return wrapAsPromise(req, 'request').then((event) => {
-      delete this[$$db]
-      return event
+    let dbName = this.dbName
+    return this.close().then(() => {
+      let req = window.indexedDB.deleteDatabase(dbName)
+      return wrapAsPromise(req, 'request').then((event) => {
+        delete this[$$db]
+        return event
+      })
     })
   },
   prepare () {
@@ -198,7 +232,7 @@ Object.assign(IndexedDBMixin.prototype, {
 
     if (event.oldVersion && model.implements(Storable.migrateObject)) {
       let oldStoreName = this.storageNameGetter(model, event.oldVersion)
-      let transaction = db.transaction(oldStoreName, 'readonly')
+      let transaction = this.getTransaction(db, oldStoreName, 'readonly')
       let objectStore = transaction.objectStore(oldStoreName)
       let context = {oldVersion: event.oldVersion, newVersion: event.newVersion}
       objectStore.openCursor().onsuccess = function (event) {
@@ -215,10 +249,11 @@ Object.assign(IndexedDBMixin.prototype, {
 
     return wrapAsPromise(newObjectStore.transaction, 'transaction')
   },
+
   getStore (model, mode = 'readonly') {
     const db = this[$$db]
     const storeName = this.storageNameGetter(model, this.dbVersion)
-    const tx = db.transaction(storeName, mode)
+    const tx = this.getTransaction(db, storeName, mode)
     return tx.objectStore(storeName)
   },
 
