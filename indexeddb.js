@@ -124,9 +124,6 @@ const IndexedDBMixin = Mixin('IndexedDBMixin')
       return flow.continue()
     } else {
       return mixin.findObjects(this, searchArg).then((results) => {
-        if (results.length === 0) {
-          return flow.continueAsync()
-        }
         let reply = new Protocol.Queryable.Success(results)
         return flow.resolveAsync(reply)
       }).catch(function () {
