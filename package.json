@@ -1,6 +1,6 @@
 {
-  "name": "n9s-indexeddb",
-  "version": "1.0.0",
+  "name": "@n9s/indexeddb",
+  "version": "0.1.0",
   "description": "IndexedDB storage mixin for nucleotides.js",
   "main": "indexeddb.js",
   "scripts": {
@@ -15,7 +15,7 @@
   "author": "mathieu@damours.org",
   "license": "MIT",
   "devDependencies": {
-    "nucleotides": "matehat/nucleotides.js#master",
+    "@n9s/core": "^0.2.0",
     "babel-polyfill": "^6.23.0",
     "babel-preset-env": "^1.6.1",
     "babel-plugin-transform-builtin-extend": "^1.1.2",
