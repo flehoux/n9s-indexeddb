@@ -1,7 +1,7 @@
 /* global describe it expect jasmine */
 
 describe('A Model stored used the IndexedDB mixin', function () {
-  const {Model, Protocol} = require('nucleotides')
+  const {Model, Protocol} = require('@n9s/core')
   const IndexedDBMixin = require('..')
 
   const idbMixin = new IndexedDBMixin({

@@ -2,7 +2,7 @@
 
 const $$db = Symbol('db')
 
-const {Mixin, Protocol, Model} = require('nucleotides')
+const {Mixin, Protocol, Model} = require('@n9s/core')
 const {Identifiable, Searchable, Queryable, Storable} = Protocol
 
 function wrapAsPromise (target, type, hooks = {}) {
