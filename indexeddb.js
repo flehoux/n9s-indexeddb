@@ -78,16 +78,14 @@ const IndexedDBMixin = Mixin('IndexedDBMixin')
         response = new Protocol.Queryable.Success(this, 200)
       }
       let objectData
-      if (typeof response.data !== 'object' ||
-          response.data == null ||
-          response.data[Identifiable.idKey(this.constructor)] == null) {
-        if (Model.isInstance(response.result)) {
-          objectData = Storable.encode(response.result)
-        } else {
-          objectData = Storable.encode(this)
-        }
+      if (Model.isInstance(response.result)) {
+        objectData = Storable.encode(response.result)
+      } else if (typeof response.result !== 'object' ||
+          response.result == null ||
+          response.result[Identifiable.idKey(this.constructor)] == null) {
+        objectData = Storable.encode(this)
       } else {
-        objectData = response.data
+        objectData = response.result
       }
       return mixin.addObject(this.constructor, objectData).then(function () {
         return flow.resolveAsync(response)
