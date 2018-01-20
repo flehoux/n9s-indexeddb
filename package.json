@@ -1,6 +1,6 @@
 {
   "name": "@n9s/indexeddb",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "IndexedDB storage mixin for nucleotides.js",
   "main": "indexeddb.js",
   "scripts": {
