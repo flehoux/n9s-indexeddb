@@ -303,6 +303,18 @@ Object.assign(IndexedDBMixin.prototype, {
       return resolveAsync([request.result])
     })
   },
+  countObjects (model, optionalQuery) {
+    return this.prepare().then(() => {
+      const objectStore = this.getStore(model)
+      const req = objectStore.count(optionalQuery)
+      return new Promise(function (resolve, reject) {
+        req.onsuccess = function (event) {
+          resolve(event.result)
+        }
+        req.onerror = reject
+      })
+    })
+  },
   getAllObjects (model) {
     const objectStore = this.getStore(model)
     const req = objectStore.openCursor()
