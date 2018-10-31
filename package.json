@@ -23,7 +23,6 @@
     "browserify": "^16.2.3",
     "globby": "^8.0.1",
     "gulp": "^3.9.1",
-    "gulp-browserify": "^0.5.1",
     "jasmine": "^2.6.0",
     "karma": "^1.7.0",
     "karma-chrome-launcher": "^2.2.0",
