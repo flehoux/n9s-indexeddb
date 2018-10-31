@@ -18,7 +18,7 @@
     "@babel/core": "^7.1.2",
     "@babel/polyfill": "^7.0.0",
     "@babel/preset-env": "^7.1.0",
-    "@n9s/core": "^0.2.0",
+    "@n9s/core": "^0.5.12",
     "babelify": "^10.0.0",
     "browserify": "^16.2.3",
     "globby": "^6.1.0",
