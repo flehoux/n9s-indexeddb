@@ -21,7 +21,7 @@
     "@n9s/core": "^0.5.12",
     "babelify": "^10.0.0",
     "browserify": "^16.2.3",
-    "globby": "^6.1.0",
+    "globby": "^8.0.1",
     "gulp": "^3.9.1",
     "gulp-browserify": "^0.5.1",
     "jasmine": "^2.6.0",
