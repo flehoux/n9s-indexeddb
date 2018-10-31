@@ -15,12 +15,12 @@
   "author": "mathieu@damours.org",
   "license": "MIT",
   "devDependencies": {
+    "@babel/core": "^7.1.2",
+    "@babel/polyfill": "^7.0.0",
+    "@babel/preset-env": "^7.1.0",
     "@n9s/core": "^0.2.0",
-    "babel-polyfill": "^6.23.0",
-    "babel-preset-env": "^1.6.1",
-    "babel-plugin-transform-builtin-extend": "^1.1.2",
-    "babelify": "^7.3.0",
-    "browserify": "^14.4.0",
+    "babelify": "^10.0.0",
+    "browserify": "^16.2.3",
     "globby": "^6.1.0",
     "gulp": "^3.9.1",
     "gulp-browserify": "^0.5.1",
@@ -38,7 +38,7 @@
         "babelify",
         {
           "presets": [
-            "env"
+            "@babel/preset-env"
           ]
         }
       ]

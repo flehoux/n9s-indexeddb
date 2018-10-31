@@ -23,7 +23,7 @@ gulp.task('javascript', function () {
 
   globby(['./spec/indexeddb_spec.js']).then(function (entries) {
     browserify({entries: entries})
-    .transform('babelify', {presets: ['es2015']})
+    .transform('babelify', {presets: ['@babel/preset-env']})
     .bundle()
     .pipe(bundledStream)
   }).catch(function (err) {
